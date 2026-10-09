@@ -1,31 +1,323 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Physics Scatter Plot</title>
-    <link href="style.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-    <h1>Calculate and plot displacement</h1>
-    <div class="container">
-        <div>
-            <form id="inputForm">
-                <label for="u">Initial velocity (u):</label>
-                <input type="number" id="u" name="u" step="any" required><br><br>
-                <label for="a">Acceleration (a):</label>
-                <input type="number" id="a" name="a" step="any" required><br><br>
-                <label for="t">Total time (t):</label>
-                <input type="number" id="t" name="t" step="any" required><br><br>
-                <input type="submit" value="Submit">
-            </form>
-        </div>
-        <div>
-            <canvas id="myChart"></canvas>
-        </div>
-    </div>
+    <title>Calculate and plot displacement</title>
 
-    <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            color: #222;
+            background-color: #fff;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 24px;
+            background: #fff;
+            border-radius: 8px;
+        }
+
+        h2 {
+            font-size: 26px;
+            margin: 0 0 22px;
+        }
+
+        .form-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 13px;
+        }
+
+        label {
+            width: 125px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 115px;
+            padding: 6px;
+            border: 1px solid #bbb;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+
+        input[readonly] {
+            background-color: #f1f1f1;
+            color: #555;
+        }
+
+        select {
+            padding: 5px;
+            border: 1px solid #bbb;
+            border-radius: 3px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 8px 20px;
+            margin: 4px 0 24px;
+            border: 1px solid #aaa;
+            border-radius: 3px;
+            background-color: #eee;
+            color: #222;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #ddd;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 360px;
+        }
+
+        @media (max-width: 500px) {
+            body {
+                margin: 8px;
+            }
+
+            .container {
+                padding: 12px;
+            }
+
+            h2 {
+                font-size: 21px;
+            }
+
+            label {
+                width: 120px;
+                font-size: 12px;
+            }
+
+            input {
+                width: 100px;
+            }
+
+            .chart-container {
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <h2>Calculate and plot displacement</h2>
+
+        <form id="displacementForm">
+            <div class="form-group">
+                <label for="u">Initial velocity (u):</label>
+                <input type="number" id="u" value="0"
+                       step="any" required>
+                <span>m/s</span>
+            </div>
+
+            <div class="form-group">
+                <label for="a">Acceleration (a):</label>
+                <input type="number" id="a" value="1.5"
+                       step="any" required>
+                <span>m/s<sup>2</sup></span>
+            </div>
+
+            <div class="form-group">
+                <label for="t">Total time (t):</label>
+                <input type="number" id="t" value="10"
+                       min="0" step="any" required>
+                <span>s</span>
+            </div>
+
+            <div class="form-group">
+                <label for="displacement">Displacement (s):</label>
+                <input type="text" id="displacement"
+                       value="75.00" readonly>
+                <span>m</span>
+            </div>
+
+            <div class="form-group">
+                <label for="samples">Number of samples:</label>
+                <select id="samples">
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                    <option value="40">40</option>
+                    <option value="50">50</option>
+                    <option value="60">60</option>
+                    <option value="70">70</option>
+                    <option value="80">80</option>
+                    <option value="90">90</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
+            <button type="submit">Calculate</button>
+        </form>
+
+        <div class="chart-container">
+            <canvas id="displacementChart"></canvas>
+        </div>
+    </main>
+
+    <script>
+        const form = document.getElementById("displacementForm");
+        const uInput = document.getElementById("u");
+        const aInput = document.getElementById("a");
+        const tInput = document.getElementById("t");
+        const displacementInput =
+            document.getElementById("displacement");
+        const samplesInput = document.getElementById("samples");
+
+        // Calculate displacement: s = ut + (1/2)at^2
+        function calculateDisplacement(u, a, time) {
+            return u * time + 0.5 * a * time * time;
+        }
+
+        // Generate samples from time 0 to 2t
+        function generateData(u, a, t, intervals) {
+            const points = [];
+            const endTime = 2 * t;
+
+            for (let i = 0; i <= intervals; i++) {
+                const time = endTime * i / intervals;
+
+                points.push({
+                    x: time,
+                    y: calculateDisplacement(u, a, time)
+                });
+            }
+
+            return points;
+        }
+
+        // Create the scatter chart
+        const chart = new Chart(
+            document.getElementById("displacementChart"),
+            {
+                type: "scatter",
+                data: {
+                    datasets: [
+                        {
+                            label: "s = ut + (1/2)at^2",
+                            data: [],
+                            showLine: true,
+                            borderColor: "#4bc0c0",
+                            backgroundColor: "#4bc0c0",
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: "Selected time",
+                            data: [],
+                            showLine: false,
+                            backgroundColor: "red",
+                            borderColor: "red",
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: "linear",
+                            min: 0,
+                            title: {
+                                display: true,
+                                text: "Time (t)"
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: "Displacement (s)"
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                filter: function(item) {
+                                    return item.datasetIndex === 0;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        );
+
+        // Calculate and update the chart
+        function updateChart() {
+            const u = Number(uInput.value);
+            const a = Number(aInput.value);
+            const t = Number(tInput.value);
+            const intervals = Number(samplesInput.value);
+
+            // Validate all input values
+            if (
+                uInput.value.trim() === "" ||
+                aInput.value.trim() === "" ||
+                tInput.value.trim() === "" ||
+                !Number.isFinite(u) ||
+                !Number.isFinite(a) ||
+                !Number.isFinite(t) ||
+                t < 0 ||
+                !Number.isInteger(intervals) ||
+                intervals < 10 ||
+                intervals > 100
+            ) {
+                alert("Please enter valid values. Time must be 0 or greater, and samples must be between 10 and 100.");
+                return;
+            }
+
+            // Displacement at the user-specified time t
+            const displacement = calculateDisplacement(u, a, t);
+            displacementInput.value = displacement.toFixed(2);
+
+            // Plot over twice the specified total time
+            chart.data.datasets[0].data =
+                generateData(u, a, t, intervals);
+
+            // Red point marks the original time t
+            chart.data.datasets[1].data = [
+                {
+                    x: t,
+                    y: displacement
+                }
+            ];
+
+            chart.options.scales.x.max = 2 * t;
+
+            chart.update();
+        }
+
+        form.addEventListener("submit", function(event) {
+            event.preventDefault();
+            updateChart();
+        });
+
+        // Display the initial calculation
+        updateChart();
+    </script>
 </body>
 </html>
